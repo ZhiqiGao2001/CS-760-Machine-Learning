@@ -1,6 +1,9 @@
 import numpy as np
 from collections import Counter
 import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from scipy.interpolate import lagrange
 
 class TreeNode:
     def __init__(self, split_feature=None, threshold=None, left=None, right=None, label=None):
@@ -77,6 +80,11 @@ def read_data(file_path):
             data.append([x1, x2, y])
         return np.array(data)
 
+##########################################################################################
+# Code above are code for decision tree
+# Code below are code for individual questions
+##########################################################################################
+
 
 def question_2_2():
     # Generate the training set
@@ -142,7 +150,7 @@ def scatter_plot_from_dataset(data):
     plt.show()
 
 
-def draw_uniform_points(tree, x1_interval, x2_interval, num_points):
+def draw_uniform_points(tree, x1_interval, x2_interval, num_points,file_path='test.png'):
     x1_values = np.linspace(x1_interval[0], x1_interval[1], num_points)
     x2_values = np.linspace(x2_interval[0], x2_interval[1], num_points)
 
@@ -155,8 +163,24 @@ def draw_uniform_points(tree, x1_interval, x2_interval, num_points):
     plt.xlabel('x1')
     plt.ylabel('x2')
     plt.title('Decision Boundary')
+    plt.savefig(file_path)
     plt.show()
 
+
+def count_nodes(node):
+    if node is None:
+        return 0
+    return 1 + count_nodes(node.left) + count_nodes(node.right)
+
+
+def compute_error_rate(tree, X, y):
+    num_misclassified = 0
+    for i in range(len(X)):
+        prediction = predict(tree, X[i])
+        if prediction != y[i]:
+            num_misclassified += 1
+    error_rate = num_misclassified / len(X)
+    return error_rate
 
 
 if __name__ == '__main__':
@@ -175,24 +199,27 @@ if __name__ == '__main__':
 
 
     # question_2_4
-    # data = read_data('Homework 2 data/D3leaves.txt')
-    # X = data[:, :-1]
-    # y = data[:, -1]
-    # tree = build_tree(X, y)
-    # print("Rules:")
-    # convert_tree_to_rules(tree)
+    data = read_data('Homework 2 data/D3leaves.txt')
+    X = data[:, :-1]
+    y = data[:, -1]
+    tree = build_tree(X, y)
+    draw_uniform_points(tree, [0, 20], [0, 10], 500, 'question_2_4.png')
+    print("Rules:")
+    convert_tree_to_rules(tree)
 
     # question_2_5
     # data = read_data('Homework 2 data/D1.txt')
     # X = data[:, :-1]
     # y = data[:, -1]
     # tree = build_tree(X, y)
+    # print(count_nodes(tree))
     # print("Rules:")
     # convert_tree_to_rules(tree)
     # data = read_data('Homework 2 data/D2.txt')
     # X = data[:, :-1]
     # y = data[:, -1]
     # tree = build_tree(X, y)
+    # print(count_nodes(tree))
     # print("Rules:")
     # convert_tree_to_rules(tree)
 
@@ -201,30 +228,74 @@ if __name__ == '__main__':
     # scatter_plot_from_dataset(data)
     # data = read_data('Homework 2 data/D2.txt')
     # scatter_plot_from_dataset(data)
-    data = read_data('Homework 2 data/D1.txt')
-    X = data[:, :-1]
-    y = data[:, -1]
-    tree = build_tree(X, y)
-    x1_interval = (0, 1)
-    x2_interval = (0, 1)
-    num_points = 200
-    draw_uniform_points(tree, x1_interval, x2_interval, num_points)
-    data = read_data('Homework 2 data/D2.txt')
-    X = data[:, :-1]
-    y = data[:, -1]
-    tree = build_tree(X, y)
-    x1_interval = (0, 1)
-    x2_interval = (0, 1)
-    num_points = 200
-    draw_uniform_points(tree, x1_interval, x2_interval, num_points)
-
-    # data = read_data('Homework 2 data/Druns.txt')
-    #
+    # data = read_data('Homework 2 data/D1.txt')
     # X = data[:, :-1]
     # y = data[:, -1]
-    #
-    # # Build the tree
     # tree = build_tree(X, y)
-    # new_data_point = np.array([1.493761, -0.753345])
-    # prediction = predict(tree, new_data_point)
-    # print(f"Predicted class: {prediction}")
+    # x1_interval = (0, 1)
+    # x2_interval = (0, 1)
+    # num_points = 200
+    # draw_uniform_points(tree, x1_interval, x2_interval, num_points)
+    # data = read_data('Homework 2 data/D2.txt')
+    # X = data[:, :-1]
+    # y = data[:, -1]
+    # tree = build_tree(X, y)
+    # x1_interval = (0, 1)
+    # x2_interval = (0, 1)
+    # num_points = 200
+    # draw_uniform_points(tree, x1_interval, x2_interval, num_points)\
+
+    # question_2_7
+    # data = read_data('Homework 2 data/Dbig.txt')
+    # indices = np.random.permutation(10000)
+    # training_set_8192 = data[indices[:8192]]
+    # X_train = training_set_8192[:, :-1]
+    # y_train = training_set_8192[:, -1]
+    #
+    # test_set = data[indices[8192:]]
+    # X_test = test_set[:, :-1]
+    # y_test = test_set[:, -1]
+    #
+    # training_sizes = [32, 128, 512, 2048, 8192]
+    #
+    # error_rates = []
+    #
+    # for size in training_sizes:
+    #     tree = build_tree(X_train[:size], y_train[:size])
+    #     error_rate = compute_error_rate(tree, X_test, y_test)
+    #     error_rates.append(error_rate)
+    #     print(f"training data size: {size}, number of nodes: {count_nodes(tree)}, error rate: {error_rate}")
+    #     draw_uniform_points(tree, (-1.5, 1.5), (-1.5, 1.5), 500, f"question_2_7_{size}.png")
+    #
+    # # Plotting
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(training_sizes, error_rates, marker='o')
+    # plt.xlabel('Training Data Size')
+    # plt.ylabel('Error Rate')
+    # plt.title('Training Data Size vs. Error Rate')
+    # plt.grid(True)
+    # plt.savefig('question_2_7_1.png')
+    # plt.show()
+    #
+    #
+    # error_rate_sklearn = []
+    # # question 3
+    # for size in training_sizes:
+    #     tree_classifier = DecisionTreeClassifier()
+    #     tree_classifier.fit(X_train[:size], y_train[:size])
+    #     y_pred = tree_classifier.predict(X_test)
+    #     error_rate = 1 - accuracy_score(y_test, y_pred)
+    #     error_rate_sklearn.append(error_rate)
+    #     print(f"training data size: {size}, number of nodes: {tree_classifier.tree_.node_count}, error rate: {error_rate}")
+    #
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(training_sizes, error_rate_sklearn, marker='o')
+    # plt.xlabel('Training Data Size')
+    # plt.ylabel('Error Rate')
+    # plt.title('Training Data Size vs. Error Rate in sklearn')
+    # plt.grid(True)
+    # plt.savefig('question_2_7_2.png')
+    # plt.show()
+
+    # question 4
+

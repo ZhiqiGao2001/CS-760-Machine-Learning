@@ -13,6 +13,16 @@ y_train = np.sin(x_train)
 # Step 3: Build Lagrange interpolation model
 f = lagrange(x_train, y_train)
 
+#draw plot for f(x)
+x = np.linspace(a, b, 10000)
+plt.plot(x, f(x), label='f(x)',color='green')
+plt.scatter(x_train, y_train, label='sin(x)')
+plt.scatter(x_train, f(x_train), label='Lagrange',color='red')
+plt.xlim(a, b)
+plt.ylim(-1.5, 1.5)
+plt.legend()
+plt.show()
+
 # Step 4: Generate test set
 x_test = np.sort(np.random.uniform(a, b, n))
 y_test = np.sin(x_test)

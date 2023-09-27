@@ -29,6 +29,22 @@ def information_gain(y, y_left, y_right):
     return H_parent - p_left * H_left - p_right * H_right
 
 
+def gain_ratio(y, y_left, y_right):
+    # Step 1: Calculate information gain
+    IG = information_gain(y, y_left, y_right)
+
+    # Step 2: Calculate split information
+    p_left = len(y_left) / len(y)
+    p_right = len(y_right) / len(y)
+    SI = -(p_left * np.log2(p_left + 1e-10) + p_right * np.log2(p_right + 1e-10))
+
+    # Step 3: Compute gain ratio
+    gain_ratio = IG / SI
+
+    return gain_ratio
+
+
+
 def find_best_split(X, y):
     best_gain = 0
     best_split = (None, None)
@@ -39,7 +55,7 @@ def find_best_split(X, y):
             y_left = y[mask]
             y_right = y[~mask]
             if len(y_left) > 0 and len(y_right) > 0:
-                gain = information_gain(y, y_left, y_right)
+                gain = gain_ratio(y, y_left, y_right)
                 if gain > best_gain:
                     best_gain = gain
                     best_split = (j, c)
@@ -120,7 +136,8 @@ def question_2_3(X, y):
             y_left = y[mask]
             y_right = y[~mask]
             gain = information_gain(y, y_left, y_right)
-            info.append((j, c, gain))
+            ratio = gain_ratio(y, y_left, y_right)
+            info.append((j, c, gain, ratio))
     return info
 
 
@@ -194,18 +211,17 @@ if __name__ == '__main__':
     # X = data[:, :-1]
     # y = data[:, -1]
     # info = question_2_3(X, y)
-    # for i,j,k in info:
-    #     print(f"For candidate cut x{i+1} >= {j}, the information gain ratio is {k}")
+    # for i,j,k,l in info:
+    #     print(f"For candidate cut x{i+1} >= {j}, the information gain is {k}, gain ratio is {l}")
 
 
     # question_2_4
-    data = read_data('Homework 2 data/D3leaves.txt')
-    X = data[:, :-1]
-    y = data[:, -1]
-    tree = build_tree(X, y)
-    draw_uniform_points(tree, [0, 20], [0, 10], 500, 'question_2_4.png')
-    print("Rules:")
-    convert_tree_to_rules(tree)
+    # data = read_data('Homework 2 data/D3leaves.txt')
+    # X = data[:, :-1]
+    # y = data[:, -1]
+    # tree = build_tree(X, y)
+    # print("Rules:")
+    # convert_tree_to_rules(tree)
 
     # question_2_5
     # data = read_data('Homework 2 data/D1.txt')
@@ -235,7 +251,7 @@ if __name__ == '__main__':
     # x1_interval = (0, 1)
     # x2_interval = (0, 1)
     # num_points = 200
-    # draw_uniform_points(tree, x1_interval, x2_interval, num_points)
+    # draw_uniform_points(tree, x1_interval, x2_interval, num_points,file_path='question_2_6_3.png')
     # data = read_data('Homework 2 data/D2.txt')
     # X = data[:, :-1]
     # y = data[:, -1]
@@ -243,9 +259,9 @@ if __name__ == '__main__':
     # x1_interval = (0, 1)
     # x2_interval = (0, 1)
     # num_points = 200
-    # draw_uniform_points(tree, x1_interval, x2_interval, num_points)\
+    # draw_uniform_points(tree, x1_interval, x2_interval, num_points,file_path='question_2_6_4.png')
 
-    # question_2_7
+    # # question_2_7
     # data = read_data('Homework 2 data/Dbig.txt')
     # indices = np.random.permutation(10000)
     # training_set_8192 = data[indices[:8192]]
@@ -298,4 +314,46 @@ if __name__ == '__main__':
     # plt.show()
 
     # question 4
+    np.random.seed(0)  # for reproducibility
+    a, b = 0, 2 * np.pi  # Interval
+    n = 100  # Number of points
+    x_train = np.sort(np.random.uniform(a, b, n))
+
+    # Step 2: Compute y = sin(x)
+    y_train = np.sin(x_train)
+
+    # Step 3: Build Lagrange interpolation model
+    f = lagrange(x_train, y_train)
+
+    # Step 4: Generate test set
+    x_test = np.sort(np.random.uniform(a, b, n))
+    y_test = np.sin(x_test)
+
+    # calculate error for lagrange interpolation
+
+    # Step 5: Compute errors
+    train_error = np.mean((f(x_train) - y_train) ** 2)
+    test_error = np.mean((f(x_test) - y_test) ** 2)
+
+    print("=" * 30+"\\\\")
+    print("Lagrange Interpolation with no Gaussian Noise\\\\")
+    print(f"Train Error: {train_error}\\\\")
+    print(f"Test Error: {test_error}\\\\")
+    print("=" * 30+"\\\\")
+    std_devs = [0.1, 1.0, 10, 100, 1000]
+
+    for std_dev in std_devs:
+        x_train_noisy = x_train + np.random.normal(0, std_dev, n)
+        y_train_noisy = np.sin(x_train_noisy)
+
+        f_noisy = lagrange(x_train_noisy, y_train_noisy)
+
+        train_error_noisy = np.mean((f_noisy(x_train_noisy) - y_train_noisy) ** 2)
+        test_error_noisy = np.mean((f_noisy(x_test) - y_test) ** 2)
+
+        print(f"Standard Deviation: {std_dev}\\\\")
+        print(f"Train Error (Noisy): {train_error_noisy}\\\\")
+        print(f"Test Error (Noisy): {test_error_noisy}\\\\")
+        print("=" * 30+"\\\\")
+
 

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 from scipy.interpolate import lagrange
+from sklearn.metrics import mean_squared_log_error
 
 class TreeNode:
     def __init__(self, split_feature=None, threshold=None, left=None, right=None, label=None):
@@ -337,8 +338,8 @@ if __name__ == '__main__':
 
     print("=" * 30+"\\\\")
     print("Lagrange Interpolation with no Gaussian Noise\\\\")
-    print(f"Train Error: {train_error}\\\\")
-    print(f"Test Error: {test_error}\\\\")
+    print(f"Train log MSE Error: {np.log(train_error)}\\\\")
+    print(f"Test log MSE Error: {np.log(test_error)}\\\\")
     print("=" * 30+"\\\\")
     std_devs = [0.1, 1.0, 10, 100, 1000]
 
@@ -352,8 +353,8 @@ if __name__ == '__main__':
         test_error_noisy = np.mean((f_noisy(x_test) - y_test) ** 2)
 
         print(f"Standard Deviation: {std_dev}\\\\")
-        print(f"Train Error (Noisy): {train_error_noisy}\\\\")
-        print(f"Test Error (Noisy): {test_error_noisy}\\\\")
+        print(f"Train log MSE Error (Noisy): {np.log(train_error_noisy)}\\\\")
+        print(f"Test log MSE Error (Noisy): {np.log(test_error_noisy)}\\\\")
         print("=" * 30+"\\\\")
 
 

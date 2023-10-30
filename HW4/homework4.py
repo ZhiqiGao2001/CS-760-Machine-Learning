@@ -139,8 +139,8 @@ mnist_testset = datasets.MNIST(root='./data', train=False, download=True, transf
 train_loader = DataLoader(mnist_trainset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(mnist_testset, batch_size=batch_size, shuffle=False)
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-
-
+########################################################################################################################
+# Question 4.2
 class NeuralNetwork_Numpy:
     def __init__(self, d, d1, k):
         self.weights1 = np.random.uniform(-1, 1, (d, d1))
@@ -250,6 +250,9 @@ plt.title('Train and Test Accuracy')
 plt.legend()
 plt.show()
 
+
+########################################################################################################################
+# Question 4.3, 4,4
 class NeuralNetwork(nn.Module):
     def __init__(self, d, d1, k):
         super(NeuralNetwork, self).__init__()

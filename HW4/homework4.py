@@ -138,16 +138,13 @@ mnist_testset = datasets.MNIST(root='./data', train=False, download=True, transf
 # Loaders with transformed data
 train_loader = DataLoader(mnist_trainset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(mnist_testset, batch_size=batch_size, shuffle=False)
-
-
-# Define the sigmoid activation function and its derivative
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-class NeuralNetwork:
+
+
+class NeuralNetwork_Numpy:
     def __init__(self, d, d1, k):
         self.weights1 = np.random.uniform(-1, 1, (d, d1))
-        self.bias1 = np.zeros((1, d1))
         self.weights2 = np.random.uniform(-1, 1, (d1, k))
-        self.bias2 = np.zeros((1, k))
 
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
@@ -157,33 +154,27 @@ class NeuralNetwork:
         return exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 
     def forward(self, x):
-        self.z1 = np.dot(x, self.weights1) + self.bias1
+        self.z1 = np.dot(x, self.weights1)
         self.a1 = self.sigmoid(self.z1)
-        self.z2 = np.dot(self.a1, self.weights2) + self.bias2
+        self.z2 = np.dot(self.a1, self.weights2)
         self.a2 = self.softmax(self.z2)
         return self.a2
 
     def backward(self, x, y):
         m = x.shape[0]
-
         dz2 = self.a2 - np.eye(self.a2.shape[1])[y]  # Convert labels to one-hot encoding
         dw2 = np.dot(self.a1.T, dz2) / m
-        db2 = np.sum(dz2, axis=0, keepdims=True) / m
 
         dz1 = np.dot(dz2, self.weights2.T) * self.a1 * (1 - self.a1)
         dw1 = np.dot(x.T, dz1) / m
-        db1 = np.sum(dz1, axis=0, keepdims=True) / m
+        return dw1, dw2
 
-        return dw1, db1, dw2, db2
-
-    def update_parameters(self, dw1, db1, dw2, db2, learning_rate):
+    def update_parameters(self, dw1, dw2, learning_rate):
         self.weights1 -= learning_rate * dw1
-        self.bias1 -= learning_rate * db1
         self.weights2 -= learning_rate * dw2
-        self.bias2 -= learning_rate * db2
 
 # Initialize the model, loss function, and optimizer
-model = NeuralNetwork(d, d1, k)
+model = NeuralNetwork_Numpy(d, d1, k)
 
 # Define the CrossEntropyLoss function
 def cross_entropy_loss(y_pred, y_true):
@@ -214,10 +205,10 @@ for epoch in range(num_epochs):
         loss = cross_entropy_loss(outputs, labels)
 
         # Backward pass
-        dw1, db1, dw2, db2 = model.backward(images, labels)
+        dw1, dw2 = model.backward(images, labels)
 
         # Update parameters
-        model.update_parameters(dw1, db1, dw2, db2, learning_rate)
+        model.update_parameters(dw1, dw2, learning_rate)
 
         total_loss += loss
 
@@ -251,97 +242,104 @@ for epoch in range(num_epochs):
 print(f'Final test accuracy: {test_accuracy}')
 print(f'Final test error rate: {100 - test_accuracy}')
 
+plt.plot(epochs_list, train_accuracies, label='Train Accuracy', color='blue')
+plt.plot(epochs_list, test_accuracies, label='Test Accuracy', color='red')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy (%)')
+plt.title('Train and Test Accuracy')
+plt.legend()
+plt.show()
 
-# class NeuralNetwork(nn.Module):
-#     def __init__(self, d, d1, k):
-#         super(NeuralNetwork, self).__init__()
-#         self.features = nn.Sequential(
-#             nn.Linear(d, d1),
-#             nn.Sigmoid(),
-#             nn.Linear(d1, k),
-#             # nn.Softmax()
-#         )
-#
-#         # # Initialize the weights to zero as required
-#         # for layer in self.features:
-#         #     if isinstance(layer, nn.Linear):
-#         #         nn.init.zeros_(layer.weight)
-#
-#         # Initialize all linear layer weights randomly between -1 and 1
-#         # for layer in self.features:
-#         #     if isinstance(layer, nn.Linear):
-#         #         nn.init.uniform_(layer.weight, -1, 1)
-#
-#     def forward(self, x):
-#         x = self.features(x)
-#         return x
-#
-#
-# # Initialize the model, loss function, and optimizer
-# model = NeuralNetwork(d, d1, k)
-# criterion = nn.CrossEntropyLoss()
-#
-# optimizer = optim.SGD(model.parameters(), lr=learning_rate)
-#
-# # Training loop
-# train_losses = []  # List to store the training losses
-#
-# # Lists to store test error and epochs
-# epochs_list = []
-# train_accuracies = []
-# test_accuracies = []
-#
-# for epoch in range(num_epochs):
-#     total_loss = 0
-#     correct_train = 0
-#     total_train = 0
-#
-#     for images, labels in train_loader:
-#         optimizer.zero_grad()
-#         outputs = model(images.view(-1, d))  # Flatten the input images
-#         loss = criterion(outputs, labels)
-#         loss.backward()
-#         optimizer.step()
-#         total_loss += loss.item()
-#
-#         _, predicted = torch.max(outputs.data, 1)
-#         total_train += labels.size(0)
-#         correct_train += (predicted == labels).sum().item()
-#
-#     avg_loss = total_loss / len(train_loader)
-#     train_losses.append(avg_loss)
-#     train_accuracy = 100 * correct_train / total_train
-#     train_accuracies.append(train_accuracy)
-#
-#     # Calculate test accuracy
-#     correct_test = 0
-#     total_test = 0
-#
-#     with torch.no_grad():
-#         for images, labels in test_loader:
-#             outputs = model(images.view(-1, d))
-#             _, predicted = torch.max(outputs.data, 1)
-#             total_test += labels.size(0)
-#             correct_test += (predicted == labels).sum().item()
-#
-#     test_accuracy = 100 * correct_test / total_test
-#     test_accuracies.append(test_accuracy)
-#     print(f'Epoch {epoch + 1}, Loss: {avg_loss}, train accuracy: {train_accuracy}, test accuracy: {test_accuracy}')
-#     epochs_list.append(epoch + 1)
-#
-#
-# # print the final epoch's test accuracy
-# print(f'Final test accuracy: {test_accuracy}')
-# print(f'Final test error rate: {100 - test_accuracy}')
-#
-#
-# # Plotting both training and test accuracy
-# plt.plot(epochs_list, train_accuracies, label='Train Accuracy', color='blue')
-# plt.plot(epochs_list, test_accuracies, label='Test Accuracy', color='red')
-# plt.xlabel('Epochs')
-# plt.ylabel('Accuracy (%)')
-# plt.title('Train and Test Accuracy')
-# plt.legend()
-# plt.show()
+class NeuralNetwork(nn.Module):
+    def __init__(self, d, d1, k):
+        super(NeuralNetwork, self).__init__()
+        self.features = nn.Sequential(
+            nn.Linear(d, d1),
+            nn.Sigmoid(),
+            nn.Linear(d1, k),
+            # nn.Softmax()
+        )
+
+        # # Initialize the weights to zero as required
+        # for layer in self.features:
+        #     if isinstance(layer, nn.Linear):
+        #         nn.init.zeros_(layer.weight)
+
+        # Initialize all linear layer weights randomly between -1 and 1
+        # for layer in self.features:
+        #     if isinstance(layer, nn.Linear):
+        #         nn.init.uniform_(layer.weight, -1, 1)
+
+    def forward(self, x):
+        x = self.features(x)
+        return x
+
+
+# Initialize the model, loss function, and optimizer
+model = NeuralNetwork(d, d1, k)
+criterion = nn.CrossEntropyLoss()
+
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+
+# Training loop
+train_losses = []  # List to store the training losses
+
+# Lists to store test error and epochs
+epochs_list = []
+train_accuracies = []
+test_accuracies = []
+
+for epoch in range(num_epochs):
+    total_loss = 0
+    correct_train = 0
+    total_train = 0
+
+    for images, labels in train_loader:
+        optimizer.zero_grad()
+        outputs = model(images.view(-1, d))  # Flatten the input images
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+
+        _, predicted = torch.max(outputs.data, 1)
+        total_train += labels.size(0)
+        correct_train += (predicted == labels).sum().item()
+
+    avg_loss = total_loss / len(train_loader)
+    train_losses.append(avg_loss)
+    train_accuracy = 100 * correct_train / total_train
+    train_accuracies.append(train_accuracy)
+
+    # Calculate test accuracy
+    correct_test = 0
+    total_test = 0
+
+    with torch.no_grad():
+        for images, labels in test_loader:
+            outputs = model(images.view(-1, d))
+            _, predicted = torch.max(outputs.data, 1)
+            total_test += labels.size(0)
+            correct_test += (predicted == labels).sum().item()
+
+    test_accuracy = 100 * correct_test / total_test
+    test_accuracies.append(test_accuracy)
+    print(f'Epoch {epoch + 1}, Loss: {avg_loss}, train accuracy: {train_accuracy}, test accuracy: {test_accuracy}')
+    epochs_list.append(epoch + 1)
+
+
+# print the final epoch's test accuracy
+print(f'Final test accuracy: {test_accuracy}')
+print(f'Final test error rate: {100 - test_accuracy}')
+
+
+# Plotting both training and test accuracy
+plt.plot(epochs_list, train_accuracies, label='Train Accuracy', color='blue')
+plt.plot(epochs_list, test_accuracies, label='Test Accuracy', color='red')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy (%)')
+plt.title('Train and Test Accuracy')
+plt.legend()
+plt.show()
 
 

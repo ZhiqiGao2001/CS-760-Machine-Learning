@@ -150,7 +150,7 @@ class NeuralNetwork_Numpy:
         return 1 / (1 + np.exp(-x))
 
     def softmax(self, x):
-        exp_scores = np.exp(x - np.max(x, axis=1, keepdims=True))
+        exp_scores = np.exp(x)
         return exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
 
     def forward(self, x):

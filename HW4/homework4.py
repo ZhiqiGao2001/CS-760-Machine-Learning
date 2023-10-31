@@ -180,7 +180,7 @@ model = NeuralNetwork_Numpy(d, d1, k)
 def cross_entropy_loss(y_pred, y_true):
     m = y_true.shape[0]
     log_likelihood = -np.log(y_pred[range(m), y_true])
-    loss = np.sum(log_likelihood) / m
+    loss = np.sum(log_likelihood)
     return loss
 
 # Training loop

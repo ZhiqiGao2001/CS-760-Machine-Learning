@@ -1,8 +1,8 @@
 import numpy as np
-from sklearn.mixture import GaussianMixture
+from scipy.stats import multivariate_normal
 import warnings
+import matplotlib.pyplot as plt
 warnings.filterwarnings('ignore')
-
 
 ########################################################################################################################
 # Problem 1
@@ -31,8 +31,13 @@ def generate_synthetic_dataset(sigma):
 # Define a list of sigma values
 sigma_values = [0.5, 1, 2, 4, 8]
 
+# Define the number of clusters (k)
+k = 3
+
 # Generate datasets for each sigma value
 datasets = [generate_synthetic_dataset(sigma) for sigma in sigma_values]
+
+true_labels = np.hstack([np.zeros(100), np.ones(100), np.full(100, 2)])
 
 
 def kmeans(X, k, max_iters=30, num_restarts=100):
@@ -96,60 +101,140 @@ def calculate_accuracy(labels):
     return accuracy
 
 
-# Define a list of sigma values
-sigma_values = [0.5, 1, 2, 4, 8]
+class CustomGaussianMixture:
+    def __init__(self, n_components, max_iterations=100, tolerance=1e-4):
+        self.n_components = n_components
+        self.max_iterations = max_iterations
+        self.tolerance = tolerance
 
-# Define the number of clusters (k)
-k = 3
+    def fit(self, X):
+        self.n_samples, self.n_features = X.shape
+        self.weights = np.ones(self.n_components) / self.n_components
+        self.means = X[np.random.choice(self.n_samples, self.n_components, replace=False)]
+        self.covariances = np.array([np.eye(self.n_features) for _ in range(self.n_components)])
+
+        for _ in range(self.max_iterations):
+            # Expectation step
+            responsibilities = self.calculate_responsibilities(X)
+
+            # Maximization step
+            self.update_parameters(X, responsibilities)
+
+            # Check for convergence
+            if np.linalg.norm(self.old_means - self.means) < self.tolerance:
+                break
+
+    def calculate_responsibilities(self, X):
+        responsibilities = np.zeros((self.n_samples, self.n_components))
+
+        for i in range(self.n_components):
+            responsibilities[:, i] = self.weights[i] * multivariate_normal.pdf(X, self.means[i], self.covariances[i])
+
+        responsibilities /= np.sum(responsibilities, axis=1)[:, np.newaxis]
+        return responsibilities
+
+    def update_parameters(self, X, responsibilities):
+        Nk = np.sum(responsibilities, axis=0)
+
+        # Update means
+        self.old_means = self.means.copy()
+        self.means = np.dot(responsibilities.T, X) / Nk[:, np.newaxis]
+
+        # Update covariances
+        for i in range(self.n_components):
+            diff = X - self.means[i]
+            self.covariances[i] = np.dot((responsibilities[:, i] * diff.T), diff) / Nk[i]
+
+        # Update weights
+        self.weights = Nk / self.n_samples
+
+    def predict(self, X):
+        responsibilities = self.calculate_responsibilities(X)
+        return np.argmax(responsibilities, axis=1)
+
+
+def custom_neg_log_likelihood(gmm, dataset):
+    n_samples, _ = dataset.shape
+    responsibilities = gmm.calculate_responsibilities(dataset)
+    likelihoods = np.zeros(n_samples)
+
+    for i in range(gmm.n_components):
+        likelihoods += responsibilities[:, i] * multivariate_normal.logpdf(dataset, gmm.means[i], gmm.covariances[i])
+
+    return -np.sum(likelihoods)
+
+
+def compute_accuracy_and_objective_custom(dataset):
+    custom_gmm = CustomGaussianMixture(n_components=3)
+    custom_gmm.fit(dataset)
+    predicted_labels = custom_gmm.predict(dataset)
+    objective = custom_neg_log_likelihood(custom_gmm, dataset)  # Get the negative log-likelihood
+    return predicted_labels, objective
+
 
 # Initialize lists to store results
 custom_kmeans_results = []
+custom_kmeans_accuracy = []
+
 
 for i in range(5):
     custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost = kmeans(datasets[i], k)
     custom_kmeans_results.append((custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost))
+    custom_kmeans_labels = custom_kmeans_results[i][1]
+    custom_accuracy = calculate_accuracy(custom_kmeans_labels)
+    custom_kmeans_accuracy.append(custom_accuracy)
 
-
-true_labels = np.hstack([np.zeros(100), np.ones(100), np.full(100, 2)])
 
 for i, sigma in enumerate(sigma_values):
     print('Sigma = {}'.format(sigma))
     print('Custom K-means cost = {}'.format(custom_kmeans_results[i][2]))
 
     # Custom K-means
-    custom_kmeans_labels = custom_kmeans_results[i][1]
-    custom_accuracy = calculate_accuracy(custom_kmeans_labels)
-    print('Custom K-means accuracy = {:.2f}%'.format(custom_accuracy * 100))
+    print('Custom K-means accuracy = {:.2f}%'.format(custom_kmeans_accuracy[i] * 100))
 
-
-def compute_accuracy_and_objective(dataset, true_labels):
-    gmm = GaussianMixture(n_components=3)
-    gmm.fit(dataset)
-    predicted_labels = gmm.predict(dataset)
-    accuracy = np.sum(predicted_labels == true_labels)/300
-    objective = -gmm.score(dataset)  # Get the negative log-likelihood
-    return accuracy, objective
-
-accuracy_gmm = []
-objective_gmm = []
+accuracy_gmm_custom = []
+objective_gmm_custom = []
 
 # Iterate over each sigma value
 for i in range(5):
-    best_accuracy = 0
+    best_label = 0
     best_objective = float('inf')
-    for _ in range(1):
-        accuracy, objective = compute_accuracy_and_objective(datasets[i], true_labels)
-        if objective < best_objective:  # Find the lowest objective value
-            best_accuracy = accuracy
-            best_objective = objective
+    best_label_custom = 0
+    best_objective_custom = float('inf')
+    for _ in range(10):
+        label_custom, objective_custom = compute_accuracy_and_objective_custom(datasets[i])
+        if objective_custom < best_objective_custom:  # Find the lowest objective value
+            best_label_custom = label_custom
+            best_objective_custom = objective_custom
 
-    accuracy_gmm.append(best_accuracy)
-    objective_gmm.append(best_objective)
+    accuracy_gmm_custom.append(calculate_accuracy(best_label_custom))
+    objective_gmm_custom.append(best_objective_custom)
 
 for i, sigma in enumerate(sigma_values):
     print('Sigma = {}'.format(sigma))
-    print('GMM lowest objective value = {:.2f}'.format(objective_gmm[i]))
-    print('GMM accuracy = {:.2f}%'.format(accuracy_gmm[i] * 100))
+    print('Custom GMM lowest objective value = {:.2f}'.format(objective_gmm_custom[i]))
+    print('Custom GMM accuracy = {:.2f}%'.format(accuracy_gmm_custom[i] * 100))
 
 
+# Plot for objective values
+plt.figure(figsize=(10, 5))
+plt.plot(sigma_values, objective_gmm_custom, label='Custom GMM', marker='o')
+plt.plot(sigma_values, [result[2] for result in custom_kmeans_results], label='Custom K-means', marker='o')
+plt.xlabel('Sigma')
+plt.ylabel('Objective Value')
+plt.title('Objective Value vs. Sigma')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Plot for accuracy values
+plt.figure(figsize=(10, 5))
+plt.plot(sigma_values, accuracy_gmm_custom, label='Custom GMM', marker='o')
+plt.plot(sigma_values, custom_kmeans_accuracy, label='Custom K-means', marker='o')
+plt.xlabel('Sigma')
+plt.ylabel('Accuracy')
+plt.title('Accuracy vs. Sigma')
+plt.legend()
+plt.grid(True)
+plt.show()
 ########################################################################################################################

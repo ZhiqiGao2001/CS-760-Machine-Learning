@@ -172,69 +172,221 @@ def compute_accuracy_and_objective_custom(dataset):
     return predicted_labels, objective
 
 
-# Initialize lists to store results
-custom_kmeans_results = []
-custom_kmeans_accuracy = []
-
-
-for i in range(5):
-    custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost = kmeans(datasets[i], k)
-    custom_kmeans_results.append((custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost))
-    custom_kmeans_labels = custom_kmeans_results[i][1]
-    custom_accuracy = calculate_accuracy(custom_kmeans_labels)
-    custom_kmeans_accuracy.append(custom_accuracy)
-
-
-for i, sigma in enumerate(sigma_values):
-    print('Sigma = {}'.format(sigma))
-    print('Custom K-means cost = {}'.format(custom_kmeans_results[i][2]))
-
-    # Custom K-means
-    print('Custom K-means accuracy = {:.2f}%'.format(custom_kmeans_accuracy[i] * 100))
-
-accuracy_gmm_custom = []
-objective_gmm_custom = []
-
-# Iterate over each sigma value
-for i in range(5):
-    best_label = 0
-    best_objective = float('inf')
-    best_label_custom = 0
-    best_objective_custom = float('inf')
-    for _ in range(10):
-        label_custom, objective_custom = compute_accuracy_and_objective_custom(datasets[i])
-        if objective_custom < best_objective_custom:  # Find the lowest objective value
-            best_label_custom = label_custom
-            best_objective_custom = objective_custom
-
-    accuracy_gmm_custom.append(calculate_accuracy(best_label_custom))
-    objective_gmm_custom.append(best_objective_custom)
-
-for i, sigma in enumerate(sigma_values):
-    print('Sigma = {}'.format(sigma))
-    print('Custom GMM lowest objective value = {:.2f}'.format(objective_gmm_custom[i]))
-    print('Custom GMM accuracy = {:.2f}%'.format(accuracy_gmm_custom[i] * 100))
-
-
-# Plot for objective values
-plt.figure(figsize=(10, 5))
-plt.plot(sigma_values, objective_gmm_custom, label='Custom GMM', marker='o')
-plt.plot(sigma_values, [result[2] for result in custom_kmeans_results], label='Custom K-means', marker='o')
-plt.xlabel('Sigma')
-plt.ylabel('Objective Value')
-plt.title('Objective Value vs. Sigma')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# Plot for accuracy values
-plt.figure(figsize=(10, 5))
-plt.plot(sigma_values, accuracy_gmm_custom, label='Custom GMM', marker='o')
-plt.plot(sigma_values, custom_kmeans_accuracy, label='Custom K-means', marker='o')
-plt.xlabel('Sigma')
-plt.ylabel('Accuracy')
-plt.title('Accuracy vs. Sigma')
-plt.legend()
-plt.grid(True)
-plt.show()
+# # Initialize lists to store results
+# custom_kmeans_results = []
+# custom_kmeans_accuracy = []
+#
+#
+# for i in range(5):
+#     custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost = kmeans(datasets[i], k)
+#     custom_kmeans_results.append((custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost))
+#     custom_kmeans_labels = custom_kmeans_results[i][1]
+#     custom_accuracy = calculate_accuracy(custom_kmeans_labels)
+#     custom_kmeans_accuracy.append(custom_accuracy)
+#
+#
+# for i, sigma in enumerate(sigma_values):
+#     print('Sigma = {}'.format(sigma))
+#     print('Custom K-means cost = {}'.format(custom_kmeans_results[i][2]))
+#
+#     # Custom K-means
+#     print('Custom K-means accuracy = {:.2f}%'.format(custom_kmeans_accuracy[i] * 100))
+#
+# accuracy_gmm_custom = []
+# objective_gmm_custom = []
+#
+# # Iterate over each sigma value
+# for i in range(5):
+#     best_label = 0
+#     best_objective = float('inf')
+#     best_label_custom = 0
+#     best_objective_custom = float('inf')
+#     for _ in range(10):
+#         label_custom, objective_custom = compute_accuracy_and_objective_custom(datasets[i])
+#         if objective_custom < best_objective_custom:  # Find the lowest objective value
+#             best_label_custom = label_custom
+#             best_objective_custom = objective_custom
+#
+#     accuracy_gmm_custom.append(calculate_accuracy(best_label_custom))
+#     objective_gmm_custom.append(best_objective_custom)
+#
+# for i, sigma in enumerate(sigma_values):
+#     print('Sigma = {}'.format(sigma))
+#     print('Custom GMM lowest objective value = {:.2f}'.format(objective_gmm_custom[i]))
+#     print('Custom GMM accuracy = {:.2f}%'.format(accuracy_gmm_custom[i] * 100))
+#
+#
+# # Plot for objective values
+# plt.figure(figsize=(10, 5))
+# plt.plot(sigma_values, objective_gmm_custom, label='Custom GMM', marker='o')
+# plt.plot(sigma_values, [result[2] for result in custom_kmeans_results], label='Custom K-means', marker='o')
+# plt.xlabel('Sigma')
+# plt.ylabel('Objective Value')
+# plt.title('Objective Value vs. Sigma')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+#
+# # Plot for accuracy values
+# plt.figure(figsize=(10, 5))
+# plt.plot(sigma_values, accuracy_gmm_custom, label='Custom GMM', marker='o')
+# plt.plot(sigma_values, custom_kmeans_accuracy, label='Custom K-means', marker='o')
+# plt.xlabel('Sigma')
+# plt.ylabel('Accuracy')
+# plt.title('Accuracy vs. Sigma')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
 ########################################################################################################################
+# Problem 2
+def reconstruction_error(X, reconstructions):
+    # Calculate the squared sum of differences
+    squared_diff = np.sum((X - reconstructions)**2)
+    return squared_diff
+
+
+def buggy_pca(X, d):
+    # Perform Singular Value Decomposition (SVD) on X
+    U, Sigma, Vt = np.linalg.svd(X, full_matrices=False)
+
+    # Compute the d-dimensional representation Z
+    Z = np.dot(X, Vt[:d, :].T)
+
+    # Compute the reconstructions of these representations in D dimensions
+    reconstructions = np.dot(Z, Vt[:d, :])
+
+    return reconstructions
+
+
+def demeaned_pca(X, d):
+    # Step 1: Compute the mean along each dimension
+    mean = np.mean(X, axis=0)
+
+    # Step 2: Subtract the mean from each data point
+    X_demeaned = X - mean
+
+    # Step 3: Perform Singular Value Decomposition (SVD) on demeaned X
+    U, Sigma, Vt = np.linalg.svd(X_demeaned, full_matrices=False)
+
+    # Step 4: Compute the d-dimensional representation Z
+    Z = np.dot(X_demeaned, Vt[:d, :].T)
+
+    # Step 5: Compute the reconstructions of these representations in D dimensions
+    reconstructions = np.dot(Z, Vt[:d, :]) + mean
+
+    return reconstructions
+
+
+def normalized_pca(X, d):
+    # Step 1: Compute the mean along each dimension
+    mean = np.mean(X, axis=0)
+
+    # Step 2: Compute the standard deviation along each dimension
+    std_dev = np.std(X, axis=0)
+
+    # Step 3: Subtract the mean and scale each dimension
+    X_normalized = (X - mean) / std_dev
+
+    # Step 4: Perform Singular Value Decomposition (SVD) on normalized X
+    U, Sigma, Vt = np.linalg.svd(X_normalized, full_matrices=False)
+
+    # Step 5: Compute the d-dimensional representation Z
+    Z = np.dot(X_normalized, Vt[:d, :].T)
+
+    # Step 6: Compute the reconstructions of these representations in D dimensions
+    reconstructions = np.dot(Z, Vt[:d, :]) * std_dev + mean
+
+    return reconstructions
+
+
+def optimize_dimensionality_reduction(X, d, num_iterations=1000, learning_rate=0.1):
+    n, D = X.shape
+
+    # Initialize parameters randomly
+    A = np.random.rand(D, d)
+    b = np.random.rand(D)
+    Z = np.random.rand(n, d)
+
+    for iteration in range(num_iterations):
+        # Compute gradients
+        error = X - np.dot(Z, A.T) - np.outer(np.ones(n), b)
+        grad_A = -2 * np.dot(error.T, Z) / n
+        grad_b = -2 * np.sum(error, axis=0) / n
+        grad_Z = -2 * np.dot(error, A) / n
+
+        # Update parameters using gradient descent
+        A -= learning_rate * grad_A
+        b -= learning_rate * grad_b
+        Z -= learning_rate * grad_Z
+    reconstructed_points = np.dot(Z, A.T) + np.outer(np.ones(n), b)
+    return reconstructed_points
+
+
+data_2d = np.loadtxt('data/data2D.csv', delimiter=',')
+data_1000d = np.loadtxt('data/data1000D.csv', delimiter=',')
+d = 1
+
+reconstructions_buggy = buggy_pca(data_2d, d)
+reconstructions_demeaned = demeaned_pca(data_2d, d)
+reconstructions_normalized = normalized_pca(data_2d, d)
+reconstruction_dro = optimize_dimensionality_reduction(data_2d, d)
+
+error_buggy = reconstruction_error(data_2d, reconstructions_buggy)
+print(f"Reconstruction error (Buggy PCA) in data_2d: {error_buggy}")
+
+error_demeaned = reconstruction_error(data_2d, reconstructions_demeaned)
+print(f"Reconstruction error (Demeaned PCA) in data_2d: {error_demeaned}")
+
+error_normalized = reconstruction_error(data_2d, reconstructions_normalized)
+print(f"Reconstruction error (Normalized PCA) in data_2d: {error_normalized}")
+
+error_dro = reconstruction_error(data_2d, reconstruction_dro)
+print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_2d: {error_dro}")
+
+d_1000 = 100
+error_buggy_1000d = reconstruction_error(data_1000d, buggy_pca(data_1000d, d_1000))
+print(f"Reconstruction error (Buggy PCA) in data_1000d: {error_buggy_1000d}")
+
+error_demeaned_1000d = reconstruction_error(data_1000d, demeaned_pca(data_1000d, d_1000))
+print(f"Reconstruction error (Demeaned PCA) in data_1000d: {error_demeaned_1000d}")
+
+error_normalized_1000d = reconstruction_error(data_1000d, normalized_pca(data_1000d, d_1000))
+print(f"Reconstruction error (Normalized PCA) in data_1000d: {error_normalized_1000d}")
+
+reconstruction_dro_1000= optimize_dimensionality_reduction(data_1000d, d_1000)
+error_dro_1000d = reconstruction_error(data_1000d, reconstruction_dro_1000)
+print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_1000d: {error_dro_1000d}")
+print(reconstruction_dro_1000)
+
+# plt.scatter(data_2d[:, 0], data_2d[:, 1], color='blue', label='Original Points', facecolors='none', edgecolors='b')
+# plt.scatter(reconstructions_buggy[:, 0], reconstructions_buggy[:, 1], color='red', label='Reconstructed Points', marker='x')
+# plt.legend()
+# plt.xlim(0, 10)
+# plt.ylim(0, 10)
+# plt.title('Buggy PCA Reconstruction data2D.csv')
+# plt.show()
+
+# plt.scatter(data_2d[:, 0], data_2d[:, 1], color='blue', label='Original Points', facecolors='none', edgecolors='b')
+# plt.scatter(reconstructions_demeaned[:, 0], reconstructions_demeaned[:, 1], color='red', label='Reconstructed Points', marker='x')
+# plt.legend()
+# plt.xlim(0, 10)
+# plt.ylim(0, 10)
+# plt.title('Demeaned PCA Reconstruction data2D.csv')
+# plt.show()
+
+# plt.scatter(data_2d[:, 0], data_2d[:, 1], color='blue', label='Original Points', facecolors='none', edgecolors='b')
+# plt.scatter(reconstructions_normalized[:, 0], reconstructions_normalized[:, 1], color='red', label='Reconstructed Points', marker='x')
+# plt.legend()
+# plt.xlim(0, 10)
+# plt.ylim(0, 10)
+# plt.title('Normalized PCA Reconstruction data2D.csv')
+# plt.show()
+
+
+# plt.scatter(data_2d[:, 0], data_2d[:, 1], color='blue', label='Original Points', facecolors='none', edgecolors='b')
+# plt.scatter(reconstruction_dro[:, 0], reconstruction_dro[:, 1], color='red', label='Reconstructed Points', marker='x')
+# plt.legend()
+# plt.xlim(0, 10)
+# plt.ylim(0, 10)
+# plt.title('Dimensionality Reduction Optimization Reconstruction data2D.csv')
+# plt.show()

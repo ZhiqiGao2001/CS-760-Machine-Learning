@@ -229,6 +229,8 @@ def compute_accuracy_and_objective_custom(dataset):
 # plt.legend()
 # plt.grid(True)
 # plt.show()
+
+
 ########################################################################################################################
 # Problem 2
 def reconstruction_error(X, reconstructions):
@@ -263,13 +265,29 @@ def normalized_pca(X, d):
 
 
 def optimize_dimensionality_reduction(X, d):
-    mean= np.mean(X, axis=0)
+    b = np.mean(X, axis=0)
+    X_demeaned = X - b
+    U, Sigma, Vt = np.linalg.svd(X_demeaned, full_matrices=False)
+    Sigma_d = np.diag(Sigma.copy())
+    reconstructed_data = np.dot(U[:, :d], np.dot(Sigma_d[:d, :d], Vt[:d, :])) + b
+    return reconstructed_data
+
+
+def plot_singular_values(X, start_idx=0, end_idx=None):
+    mean = np.mean(X, axis=0)
     X_demeaned = X - mean
     U, Sigma, Vt = np.linalg.svd(X_demeaned, full_matrices=False)
-    masked_S = np.diag(Sigma.copy())
-    masked_S[d:] = 0
-    reconstructed_data = U[:, :d] @ (masked_S @ Vt)[:d] + mean
-    return reconstructed_data
+
+    # Set default end_idx if not provided
+    if end_idx is None:
+        end_idx = len(Sigma)
+
+    # Plot selected sigma values
+    plt.plot(range(start_idx, end_idx), Sigma[start_idx:end_idx])
+    plt.xlabel('Index')
+    plt.ylabel('Singular Value')
+    plt.title(f'Singular Values (Index {start_idx} to {end_idx-1})')
+    plt.show()
 
 
 data_2d = np.loadtxt('data/data2D.csv', delimiter=',')
@@ -294,7 +312,10 @@ error_dro = reconstruction_error(data_2d, reconstruction_dro)
 print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_2d: {error_dro:.8f}")
 
 
-d_1000 = 100
+# plot_singular_values(data_1000d)
+# plot_singular_values(data_1000d, 20, 40)
+
+d_1000 = 30
 error_buggy_1000d = reconstruction_error(data_1000d, buggy_pca(data_1000d, d_1000))
 print(f"Reconstruction error (Buggy PCA) in data_1000d: {error_buggy_1000d:.8f}")
 

@@ -342,17 +342,17 @@ print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_100
 # plt.title('Dimensionality Reduction Optimization Reconstruction data2D.csv')
 # plt.show()
 
-d_values = np.arange(25, 35)
-errors = []
-
-for d in d_values:
-    reconstructed_data = optimize_dimensionality_reduction(data_1000d, d)
-    error = reconstruction_error(data_1000d, reconstructed_data)
-    errors.append(error)
-
-# Plotting the error vs d
-plt.plot(d_values, errors)
-plt.xlabel('d')
-plt.ylabel('Reconstruction Error')
-plt.title('Error vs Dimensionality (d)')
-plt.show()
+# d_values = np.arange(25, 35)
+# errors = []
+#
+# for d in d_values:
+#     reconstructed_data = optimize_dimensionality_reduction(data_1000d, d)
+#     error = reconstruction_error(data_1000d, reconstructed_data)
+#     errors.append(error)
+#
+# # Plotting the error vs d
+# plt.plot(d_values, errors)
+# plt.xlabel('d')
+# plt.ylabel('Reconstruction Error')
+# plt.title('Error vs Dimensionality (d)')
+# plt.show()

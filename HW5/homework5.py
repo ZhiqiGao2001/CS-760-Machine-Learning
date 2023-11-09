@@ -119,14 +119,11 @@ class CustomGaussianMixture:
 
             # Maximization step
             self.update_parameters(X, responsibilities)
-
-            # Check for convergence
             if np.linalg.norm(self.old_means - self.means) < self.tolerance:
                 break
 
     def calculate_responsibilities(self, X):
         responsibilities = np.zeros((self.n_samples, self.n_components))
-
         for i in range(self.n_components):
             responsibilities[:, i] = self.weights[i] * multivariate_normal.pdf(X, self.means[i], self.covariances[i])
 
@@ -135,12 +132,8 @@ class CustomGaussianMixture:
 
     def update_parameters(self, X, responsibilities):
         Nk = np.sum(responsibilities, axis=0)
-
-        # Update means
         self.old_means = self.means.copy()
         self.means = np.dot(responsibilities.T, X) / Nk[:, np.newaxis]
-
-        # Update covariances
         for i in range(self.n_components):
             diff = X - self.means[i]
             self.covariances[i] = np.dot((responsibilities[:, i] * diff.T), diff) / Nk[i]
@@ -171,7 +164,7 @@ def compute_accuracy_and_objective_custom(dataset):
     objective = custom_neg_log_likelihood(custom_gmm, dataset)  # Get the negative log-likelihood
     return predicted_labels, objective
 
-
+#
 # # Initialize lists to store results
 # custom_kmeans_results = []
 # custom_kmeans_accuracy = []
@@ -180,7 +173,6 @@ def compute_accuracy_and_objective_custom(dataset):
 # for i in range(5):
 #     custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost = kmeans(datasets[i], k)
 #     custom_kmeans_results.append((custom_kmeans_centers, custom_kmeans_labels, custom_kmeans_cost))
-#     custom_kmeans_labels = custom_kmeans_results[i][1]
 #     custom_accuracy = calculate_accuracy(custom_kmeans_labels)
 #     custom_kmeans_accuracy.append(custom_accuracy)
 #
@@ -191,7 +183,7 @@ def compute_accuracy_and_objective_custom(dataset):
 #
 #     # Custom K-means
 #     print('Custom K-means accuracy = {:.2f}%'.format(custom_kmeans_accuracy[i] * 100))
-#
+
 # accuracy_gmm_custom = []
 # objective_gmm_custom = []
 #
@@ -240,86 +232,44 @@ def compute_accuracy_and_objective_custom(dataset):
 ########################################################################################################################
 # Problem 2
 def reconstruction_error(X, reconstructions):
-    # Calculate the squared sum of differences
     squared_diff = np.sum((X - reconstructions)**2)
     return squared_diff
 
 
 def buggy_pca(X, d):
-    # Perform Singular Value Decomposition (SVD) on X
     U, Sigma, Vt = np.linalg.svd(X, full_matrices=False)
-
-    # Compute the d-dimensional representation Z
     Z = np.dot(X, Vt[:d, :].T)
-
-    # Compute the reconstructions of these representations in D dimensions
     reconstructions = np.dot(Z, Vt[:d, :])
-
     return reconstructions
 
 
 def demeaned_pca(X, d):
-    # Step 1: Compute the mean along each dimension
     mean = np.mean(X, axis=0)
-
-    # Step 2: Subtract the mean from each data point
     X_demeaned = X - mean
-
-    # Step 3: Perform Singular Value Decomposition (SVD) on demeaned X
     U, Sigma, Vt = np.linalg.svd(X_demeaned, full_matrices=False)
-
-    # Step 4: Compute the d-dimensional representation Z
     Z = np.dot(X_demeaned, Vt[:d, :].T)
-
-    # Step 5: Compute the reconstructions of these representations in D dimensions
     reconstructions = np.dot(Z, Vt[:d, :]) + mean
-
     return reconstructions
 
 
 def normalized_pca(X, d):
-    # Step 1: Compute the mean along each dimension
     mean = np.mean(X, axis=0)
-
-    # Step 2: Compute the standard deviation along each dimension
     std_dev = np.std(X, axis=0)
-
-    # Step 3: Subtract the mean and scale each dimension
     X_normalized = (X - mean) / std_dev
-
-    # Step 4: Perform Singular Value Decomposition (SVD) on normalized X
     U, Sigma, Vt = np.linalg.svd(X_normalized, full_matrices=False)
-
-    # Step 5: Compute the d-dimensional representation Z
     Z = np.dot(X_normalized, Vt[:d, :].T)
-
-    # Step 6: Compute the reconstructions of these representations in D dimensions
     reconstructions = np.dot(Z, Vt[:d, :]) * std_dev + mean
-
     return reconstructions
 
 
-def optimize_dimensionality_reduction(X, d, num_iterations=1000, learning_rate=0.1):
-    n, D = X.shape
-
-    # Initialize parameters randomly
-    A = np.random.rand(D, d)
-    b = np.random.rand(D)
-    Z = np.random.rand(n, d)
-
-    for iteration in range(num_iterations):
-        # Compute gradients
-        error = X - np.dot(Z, A.T) - np.outer(np.ones(n), b)
-        grad_A = -2 * np.dot(error.T, Z) / n
-        grad_b = -2 * np.sum(error, axis=0) / n
-        grad_Z = -2 * np.dot(error, A) / n
-
-        # Update parameters using gradient descent
-        A -= learning_rate * grad_A
-        b -= learning_rate * grad_b
-        Z -= learning_rate * grad_Z
-    reconstructed_points = np.dot(Z, A.T) + np.outer(np.ones(n), b)
-    return reconstructed_points
+def optimize_dimensionality_reduction(X, d):
+    mean= np.mean(X, axis=0)
+    X_demeaned = X - mean
+    U, Sigma, Vt = np.linalg.svd(X_demeaned, full_matrices=False)
+    masked_S = np.diag(Sigma.copy())
+    masked_S[d:] = 0
+    reconstructed_data = U[:, :d] @ (masked_S @ Vt)[:d] + mean
+    return reconstructed_data
 
 
 data_2d = np.loadtxt('data/data2D.csv', delimiter=',')
@@ -332,31 +282,32 @@ reconstructions_normalized = normalized_pca(data_2d, d)
 reconstruction_dro = optimize_dimensionality_reduction(data_2d, d)
 
 error_buggy = reconstruction_error(data_2d, reconstructions_buggy)
-print(f"Reconstruction error (Buggy PCA) in data_2d: {error_buggy}")
+print(f"Reconstruction error (Buggy PCA) in data_2d: {error_buggy:.8f}")
 
 error_demeaned = reconstruction_error(data_2d, reconstructions_demeaned)
-print(f"Reconstruction error (Demeaned PCA) in data_2d: {error_demeaned}")
+print(f"Reconstruction error (Demeaned PCA) in data_2d: {error_demeaned:.8f}")
 
 error_normalized = reconstruction_error(data_2d, reconstructions_normalized)
-print(f"Reconstruction error (Normalized PCA) in data_2d: {error_normalized}")
+print(f"Reconstruction error (Normalized PCA) in data_2d: {error_normalized:.8f}")
 
 error_dro = reconstruction_error(data_2d, reconstruction_dro)
-print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_2d: {error_dro}")
+print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_2d: {error_dro:.8f}")
+
 
 d_1000 = 100
 error_buggy_1000d = reconstruction_error(data_1000d, buggy_pca(data_1000d, d_1000))
-print(f"Reconstruction error (Buggy PCA) in data_1000d: {error_buggy_1000d}")
+print(f"Reconstruction error (Buggy PCA) in data_1000d: {error_buggy_1000d:.8f}")
 
 error_demeaned_1000d = reconstruction_error(data_1000d, demeaned_pca(data_1000d, d_1000))
-print(f"Reconstruction error (Demeaned PCA) in data_1000d: {error_demeaned_1000d}")
+print(f"Reconstruction error (Demeaned PCA) in data_1000d: {error_demeaned_1000d:.8f}")
 
 error_normalized_1000d = reconstruction_error(data_1000d, normalized_pca(data_1000d, d_1000))
-print(f"Reconstruction error (Normalized PCA) in data_1000d: {error_normalized_1000d}")
+print(f"Reconstruction error (Normalized PCA) in data_1000d: {error_normalized_1000d:.8f}")
 
 reconstruction_dro_1000= optimize_dimensionality_reduction(data_1000d, d_1000)
 error_dro_1000d = reconstruction_error(data_1000d, reconstruction_dro_1000)
-print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_1000d: {error_dro_1000d}")
-print(reconstruction_dro_1000)
+print(f"Reconstruction error (Dimensionality Reduction Optimization) in data_1000d: {error_dro_1000d:.8f}")
+
 
 # plt.scatter(data_2d[:, 0], data_2d[:, 1], color='blue', label='Original Points', facecolors='none', edgecolors='b')
 # plt.scatter(reconstructions_buggy[:, 0], reconstructions_buggy[:, 1], color='red', label='Reconstructed Points', marker='x')
@@ -390,3 +341,18 @@ print(reconstruction_dro_1000)
 # plt.ylim(0, 10)
 # plt.title('Dimensionality Reduction Optimization Reconstruction data2D.csv')
 # plt.show()
+
+d_values = np.arange(25, 35)
+errors = []
+
+for d in d_values:
+    reconstructed_data = optimize_dimensionality_reduction(data_1000d, d)
+    error = reconstruction_error(data_1000d, reconstructed_data)
+    errors.append(error)
+
+# Plotting the error vs d
+plt.plot(d_values, errors)
+plt.xlabel('d')
+plt.ylabel('Reconstruction Error')
+plt.title('Error vs Dimensionality (d)')
+plt.show()

@@ -58,6 +58,7 @@ print(alarm_model.get_cpds("Alarm"))
 print(alarm_model.get_cpds("JohnCalls"))
 print(alarm_model.get_cpds("MaryCalls"))
 
+print(infer.query(variables=["Burglary", "Earthquake", "JohnCalls", "MaryCalls"]))
 print("P(Burglary|JohnCalls=1, MaryCalls=1, Earthquake=0)")
 print(infer.query(variables=["Burglary"], evidence={"Earthquake": 0, "JohnCalls": 1, "MaryCalls": 1}))
 

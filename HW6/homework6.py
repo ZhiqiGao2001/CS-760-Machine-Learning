@@ -1,7 +1,8 @@
 from math import log2
 from pgmpy.models import BayesianNetwork
 from pgmpy.inference import VariableElimination
-
+# Defining the parameters using CPT
+from pgmpy.factors.discrete import TabularCPD
 
 alarm_model = BayesianNetwork(
     [
@@ -11,9 +12,6 @@ alarm_model = BayesianNetwork(
         ("Alarm", "MaryCalls"),
     ]
 )
-
-# Defining the parameters using CPT
-from pgmpy.factors.discrete import TabularCPD
 
 cpd_burglary = TabularCPD(
     variable="Burglary", variable_card=2, values=[[0.9], [0.1]]
